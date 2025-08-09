@@ -65,6 +65,9 @@ AGAME_TERRO_WGJCharacter::AGAME_TERRO_WGJCharacter()
 	bIsFalling = false;
 	bWantsToRun = false;
 	
+	// Camera settings
+	bFirstPersonMode = false; // Start in third person mode (more stable)
+	
 	// Enhanced thresholds for smooth transitions
 	RunSpeedThreshold = 350.0f;
 	WalkSpeedThreshold = 5.0f;
@@ -113,6 +116,8 @@ void AGAME_TERRO_WGJCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	// Run Actions - Shift keys (mapped in DefaultInput.ini)
 	PlayerInputComponent->BindAction("Run", IE_Pressed, this, &AGAME_TERRO_WGJCharacter::StartRunning);
 	PlayerInputComponent->BindAction("Run", IE_Released, this, &AGAME_TERRO_WGJCharacter::StopRunning);
+
+	// Note: Camera toggle can be called from Blueprints using ToggleFirstPerson()
 
 	//////////////////////////////////////////////////////////////////////////
 	// Movement Axis - WASD
@@ -224,17 +229,6 @@ void AGAME_TERRO_WGJCharacter::Tick(float DeltaTime)
 	
 	// Handle animation transitions
 	PlayAnimationBasedOnMovement();
-	
-	// Debug: Check input status periodically (every second)
-	#if WITH_EDITOR
-	static float DebugTimer = 0.0f;
-	DebugTimer += DeltaTime;
-	if (DebugTimer >= 1.0f)
-	{
-		CheckInputStatus();
-		DebugTimer = 0.0f;
-	}
-	#endif
 }
 
 void AGAME_TERRO_WGJCharacter::SetupCyberpunkGirlMesh()
@@ -249,18 +243,6 @@ void AGAME_TERRO_WGJCharacter::SetupCyberpunkGirlMesh()
 		// Adjust mesh position and rotation
 		GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -88.0f));
 		GetMesh()->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
-		
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Cyberpunk Girl Mesh Loaded Successfully!"));
-		}
-	}
-	else
-	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("Failed to load Cyberpunk Girl Mesh!"));
-		}
 	}
 
 	// Load Animation Assets
@@ -268,30 +250,18 @@ void AGAME_TERRO_WGJCharacter::SetupCyberpunkGirlMesh()
 	if (IdleAnimAsset.Succeeded())
 	{
 		IdleAnimation = IdleAnimAsset.Object;
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Idle Animation Loaded!"));
-		}
 	}
 
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> RunAnimAsset(TEXT("/Game/Cyberpunk_Girl/Demo/ThirdPersonRun"));
 	if (RunAnimAsset.Succeeded())
 	{
 		RunAnimation = RunAnimAsset.Object;
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Run Animation Loaded!"));
-		}
 	}
 
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> WalkAnimAsset(TEXT("/Game/Cyberpunk_Girl/Demo/ThirdPersonWalk"));
 	if (WalkAnimAsset.Succeeded())
 	{
 		WalkAnimation = WalkAnimAsset.Object;
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Walk Animation Loaded!"));
-		}
 	}
 
 	// Load Jump Start Animation
@@ -299,10 +269,6 @@ void AGAME_TERRO_WGJCharacter::SetupCyberpunkGirlMesh()
 	if (JumpStartAnimAsset.Succeeded())
 	{
 		JumpStartAnimation = JumpStartAnimAsset.Object;
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Jump Start Animation Loaded!"));
-		}
 	}
 
 	// Start with idle animation
@@ -357,22 +323,6 @@ void AGAME_TERRO_WGJCharacter::UpdateAnimationProperties()
 			SmoothTransitionSpeed
 		);
 	}
-
-	// Debug output (only in development builds)
-	#if WITH_EDITOR
-	if (GEngine)
-	{
-		FString DebugMessage = FString::Printf(
-			TEXT("Speed: %.1f | Moving: %s | Running: %s | Wants Run: %s | Jumping: %s"), 
-			Speed, 
-			bIsMoving ? TEXT("True") : TEXT("False"), 
-			bIsRunning ? TEXT("True") : TEXT("False"),
-			bWantsToRun ? TEXT("True") : TEXT("False"),
-			bIsJumping ? TEXT("True") : TEXT("False")
-		);
-		GEngine->AddOnScreenDebugMessage(0, 0.0f, FColor::White, DebugMessage);
-	}
-	#endif
 }
 
 void AGAME_TERRO_WGJCharacter::PlayAnimationBasedOnMovement()
@@ -423,21 +373,6 @@ void AGAME_TERRO_WGJCharacter::PlayAnimationBasedOnMovement()
 		
 		// Play the animation directly on the skeletal mesh
 		GetMesh()->PlayAnimation(TargetAnimation, bShouldLoop);
-		
-		// Debug output (only in development builds)
-		#if WITH_EDITOR
-		if (GEngine)
-		{
-			FString AnimName = TargetAnimation->GetName();
-			FString DebugMessage = FString::Printf(
-				TEXT("Playing Animation: %s (Speed: %.1f, Loop: %s)"), 
-				*AnimName, 
-				Speed,
-				bShouldLoop ? TEXT("Yes") : TEXT("No")
-			);
-			GEngine->AddOnScreenDebugMessage(1, 2.0f, FColor::Yellow, DebugMessage);
-		}
-		#endif
 	}
 }
 
@@ -447,28 +382,12 @@ void AGAME_TERRO_WGJCharacter::PlayAnimationBasedOnMovement()
 void AGAME_TERRO_WGJCharacter::StartRunning()
 {
 	bWantsToRun = true;
-	
-	#if WITH_EDITOR
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(2, 2.0f, FColor::Cyan, TEXT("🏃 Started Running! (Shift Pressed)"));
-	}
-	#endif
-	
 	UE_LOG(LogTemp, Log, TEXT("StartRunning called - bWantsToRun set to true"));
 }
 
 void AGAME_TERRO_WGJCharacter::StopRunning()
 {
 	bWantsToRun = false;
-	
-	#if WITH_EDITOR
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(2, 2.0f, FColor::Cyan, TEXT("🚶 Stopped Running! (Shift Released)"));
-	}
-	#endif
-	
 	UE_LOG(LogTemp, Log, TEXT("StopRunning called - bWantsToRun set to false"));
 }
 
@@ -503,34 +422,6 @@ void AGAME_TERRO_WGJCharacter::CreateMovementInputMappings()
 }
 
 //////////////////////////////////////////////////////////////////////////
-// Debug Functions
-
-void AGAME_TERRO_WGJCharacter::CheckInputStatus()
-{
-	#if WITH_EDITOR
-	if (GEngine)
-	{
-		FString InputStatus = FString::Printf(
-			TEXT("🎮 INPUT STATUS:\nbWantsToRun: %s\nbIsRunning: %s\nbIsMoving: %s\nSpeed: %.1f"),
-			bWantsToRun ? TEXT("TRUE") : TEXT("FALSE"),
-			bIsRunning ? TEXT("TRUE") : TEXT("FALSE"),
-			bIsMoving ? TEXT("TRUE") : TEXT("FALSE"),
-			Speed
-		);
-		
-		FString JumpStatus = FString::Printf(
-			TEXT("🚀 JUMP STATUS:\nbIsJumping: %s\nbIsFalling: %s"),
-			bIsJumping ? TEXT("TRUE") : TEXT("FALSE"),
-			bIsFalling ? TEXT("TRUE") : TEXT("FALSE")
-		);
-		
-		GEngine->AddOnScreenDebugMessage(10, 1.0f, FColor::Orange, InputStatus);
-		GEngine->AddOnScreenDebugMessage(11, 1.0f, FColor::Cyan, JumpStatus);
-	}
-	#endif
-}
-
-//////////////////////////////////////////////////////////////////////////
 // Jump Animation System (Simplified)
 
 void AGAME_TERRO_WGJCharacter::Jump()
@@ -548,10 +439,40 @@ void AGAME_TERRO_WGJCharacter::PlayJumpStartAnimation()
 	{
 		CurrentAnimation = JumpStartAnimation;
 		GetMesh()->PlayAnimation(JumpStartAnimation, false); // Don't loop
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Camera System (Simplified)
+
+void AGAME_TERRO_WGJCharacter::ToggleFirstPerson()
+{
+	bFirstPersonMode = !bFirstPersonMode;
+	SetFirstPersonMode(bFirstPersonMode);
+}
+
+void AGAME_TERRO_WGJCharacter::SetFirstPersonMode(bool bEnable)
+{
+	bFirstPersonMode = bEnable;
+	
+	if (bFirstPersonMode)
+	{
+		// First Person Configuration
+		CameraBoom->TargetArmLength = 0.0f;
+		FollowCamera->SetRelativeLocation(FVector(10.0f, 0.0f, 60.0f)); // At head level
 		
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 1.5f, FColor::Cyan, TEXT("🚀 Playing Jump Start Animation!"));
-		}
+		// Enable controller rotation for looking around
+		bUseControllerRotationYaw = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+	}
+	else
+	{
+		// Third Person Configuration
+		CameraBoom->TargetArmLength = 300.0f;
+		FollowCamera->SetRelativeLocation(FVector::ZeroVector); // Reset position
+		
+		// Disable controller rotation for third person
+		bUseControllerRotationYaw = false;
+		GetCharacterMovement()->bOrientRotationToMovement = true;
 	}
 }

@@ -66,6 +66,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	float BaseLookUpRate;
 
+	// Camera Settings
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
+	bool bFirstPersonMode;
+
 	// Animation Assets
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation Assets")
 	USkeletalMesh* CyberpunkGirlMesh;
@@ -180,16 +184,19 @@ protected:
 	void PlayAnimationBasedOnMovement();
 
 	//////////////////////////////////////////////////////////////////////////
+	// Camera Functions
+	UFUNCTION(BlueprintCallable, Category = "Camera")
+	void ToggleFirstPerson();
+
+	UFUNCTION(BlueprintCallable, Category = "Camera")
+	void SetFirstPersonMode(bool bEnable);
+
+	//////////////////////////////////////////////////////////////////////////
 	// Jump Animation Functions
 	UFUNCTION(BlueprintCallable, Category = "Jump Animation")
 	void PlayJumpStartAnimation();
 
 	// Override Jump function
 	virtual void Jump() override;
-
-	//////////////////////////////////////////////////////////////////////////
-	// Debug Functions
-	UFUNCTION(BlueprintCallable, Category = "Debug")
-	void CheckInputStatus();
 };
 
