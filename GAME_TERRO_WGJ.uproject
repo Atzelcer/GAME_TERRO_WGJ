@@ -7,7 +7,10 @@
 		{
 			"Name": "GAME_TERRO_WGJ",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine"
+			]
 		}
 	]
 }
