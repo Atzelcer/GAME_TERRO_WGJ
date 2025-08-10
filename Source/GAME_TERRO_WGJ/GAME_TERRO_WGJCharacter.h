@@ -17,6 +17,8 @@ class UCameraComponent;
 class UAnimSequence;
 class UBlendSpace;
 class USkeletalMesh;
+class UGameTerror;
+class AHUD_terror;
 
 UCLASS(config=Game)
 class AGAME_TERRO_WGJCharacter : public ACharacter
@@ -198,5 +200,33 @@ protected:
 
 	// Override Jump function
 	virtual void Jump() override;
+
+	public:
+
+	// ---- HUD ----
+	UPROPERTY() AHUD_terror* HudActorRef = nullptr;
+
+	// ---- Agotamiento ----
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Agotamiento", meta = (ClampMin = "0"))
+	float agotamientoActual = 0.f;     
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Agotamiento", meta = (ClampMin = "0.01"))
+	float tasaAumentoCorriendo = 0.20f;   
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Agotamiento", meta = (ClampMin = "0.01"))
+	float tasaBajadaReposo = 0.30f;    
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Agotamiento")
+	float delayRecuperacion = 0.75f;        
+
+	UPROPERTY(BlueprintReadOnly, Category = "Agotamiento")
+	bool bExhausto = false;
+
+	float tiempoDesdeQueDejoDeCorrer = 0.f;
+
+	void ActualizarAgotamiento(float DeltaTime);
+	void ActualizarHUD();
+
+
 };
 

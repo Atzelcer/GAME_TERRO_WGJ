@@ -22,6 +22,9 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "UObject/ConstructorHelpers.h"
 
+#include "GameTerror.h"
+#include "HUD_terror.h"
+
 //////////////////////////////////////////////////////////////////////////
 // AGAME_TERRO_WGJCharacter Constructor
 
@@ -215,10 +218,36 @@ void AGAME_TERRO_WGJCharacter::MoveRight(float Value)
 void AGAME_TERRO_WGJCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	// Load animation assets from content folder
+
 	SetupCyberpunkGirlMesh();
+
+	// cachea el HUD del jugador
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		HudActorRef = PC->GetHUD<AHUD_terror>();
+	}
+	else
+	{
+		// alternativa si BeginPlay corre antes de poseer:
+		if (APlayerController* PC0 = GetWorld()->GetFirstPlayerController())
+		{
+			HudActorRef = PC0->GetHUD<AHUD_terror>();
+		}
+	}
+
+	if (HudActorRef)
+	{
+		HudActorRef->EstablecerCansancio(agotamientoActual);
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("HUD actor linked"));
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("HUD actor not found (check GameMode HUDClass)"));
+	}
+
+	SetFirstPersonMode(true);
 }
+
 
 void AGAME_TERRO_WGJCharacter::Tick(float DeltaTime)
 {
@@ -229,6 +258,9 @@ void AGAME_TERRO_WGJCharacter::Tick(float DeltaTime)
 	
 	// Handle animation transitions
 	PlayAnimationBasedOnMovement();
+
+	ActualizarAgotamiento(DeltaTime);
+	ActualizarHUD();
 }
 
 void AGAME_TERRO_WGJCharacter::SetupCyberpunkGirlMesh()
@@ -381,14 +413,15 @@ void AGAME_TERRO_WGJCharacter::PlayAnimationBasedOnMovement()
 
 void AGAME_TERRO_WGJCharacter::StartRunning()
 {
-	bWantsToRun = true;
-	UE_LOG(LogTemp, Log, TEXT("StartRunning called - bWantsToRun set to true"));
+	if (!bExhausto)
+	{
+		bWantsToRun = true;
+	}
 }
 
 void AGAME_TERRO_WGJCharacter::StopRunning()
 {
 	bWantsToRun = false;
-	UE_LOG(LogTemp, Log, TEXT("StopRunning called - bWantsToRun set to false"));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -433,6 +466,64 @@ void AGAME_TERRO_WGJCharacter::Jump()
 	PlayJumpStartAnimation();
 }
 
+void AGAME_TERRO_WGJCharacter::ActualizarAgotamiento(float Dt)
+{
+	const bool estaMoviendose = bIsMoving;
+	const bool manteniendoRun = bWantsToRun;
+
+	// si está exhausto, fuerza caminar
+	if (bExhausto)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	}
+
+	// aumento de agotamiento
+	if (estaMoviendose && manteniendoRun && !bExhausto)
+	{
+		agotamientoActual += tasaAumentoCorriendo * Dt;
+		tiempoDesdeQueDejoDeCorrer = 0.f;
+	}
+	else
+	{
+		// recuperación
+		tiempoDesdeQueDejoDeCorrer += Dt;
+		if (tiempoDesdeQueDejoDeCorrer >= delayRecuperacion)
+		{
+			agotamientoActual -= tasaBajadaReposo * Dt;
+
+		}
+	}
+
+	agotamientoActual = FMath::Clamp(agotamientoActual, 0.f, 1.f);
+
+	// entrar en estado exhausto
+	if (agotamientoActual >= 1.f)
+	{
+		if (!bExhausto)
+		bExhausto = true;
+	}
+
+	// salir de estado exhausto
+	if (bExhausto && agotamientoActual <= 0.25f)
+	{
+		bExhausto = false;
+	}
+
+	if (bExhausto)
+	{
+		bWantsToRun = false;
+	}
+}
+
+
+void AGAME_TERRO_WGJCharacter::ActualizarHUD()
+{
+	if (HudActorRef)
+	{
+		HudActorRef->EstablecerCansancio(agotamientoActual);
+	}
+}
+
 void AGAME_TERRO_WGJCharacter::PlayJumpStartAnimation()
 {
 	if (JumpStartAnimation && GetMesh())
@@ -454,25 +545,40 @@ void AGAME_TERRO_WGJCharacter::ToggleFirstPerson()
 void AGAME_TERRO_WGJCharacter::SetFirstPersonMode(bool bEnable)
 {
 	bFirstPersonMode = bEnable;
-	
+
 	if (bFirstPersonMode)
 	{
-		// First Person Configuration
-		CameraBoom->TargetArmLength = 0.0f;
-		FollowCamera->SetRelativeLocation(FVector(10.0f, 0.0f, 60.0f)); // At head level
-		
-		// Enable controller rotation for looking around
+		CameraBoom->TargetArmLength = 0.f;
+		CameraBoom->bUsePawnControlRotation = false;
+		CameraBoom->bDoCollisionTest = false;
+
+		FollowCamera->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+		FollowCamera->SetRelativeLocation(FVector(0.f, 0.f, 60.f));
+		FollowCamera->SetRelativeRotation(FRotator::ZeroRotator);
+		FollowCamera->bUsePawnControlRotation = true;
+
 		bUseControllerRotationYaw = true;
+		bUseControllerRotationPitch = true;
+		bUseControllerRotationRoll = false;
 		GetCharacterMovement()->bOrientRotationToMovement = false;
+
+		if (GetMesh()) GetMesh()->SetOwnerNoSee(true);
 	}
 	else
 	{
-		// Third Person Configuration
-		CameraBoom->TargetArmLength = 300.0f;
-		FollowCamera->SetRelativeLocation(FVector::ZeroVector); // Reset position
-		
-		// Disable controller rotation for third person
+		FollowCamera->AttachToComponent(CameraBoom, FAttachmentTransformRules::SnapToTargetNotIncludingScale, USpringArmComponent::SocketName);
+		FollowCamera->SetRelativeLocation(FVector::ZeroVector);
+		FollowCamera->SetRelativeRotation(FRotator::ZeroRotator);
+		FollowCamera->bUsePawnControlRotation = false;
+
+		CameraBoom->TargetArmLength = 300.f;
+		CameraBoom->bUsePawnControlRotation = true;
+		CameraBoom->bDoCollisionTest = true;
+
 		bUseControllerRotationYaw = false;
+		bUseControllerRotationPitch = false;
 		GetCharacterMovement()->bOrientRotationToMovement = true;
+
+		if (GetMesh()) GetMesh()->SetOwnerNoSee(false);
 	}
 }

@@ -5,6 +5,7 @@
 #include "HUD_terror.generated.h"
 
 class UGameTerror;
+class UNotascpp;
 class UTexture2D;
 
 UCLASS()
@@ -16,17 +17,25 @@ public:
 	AHUD_terror();
 	virtual void BeginPlay() override;
 
-	// Mostrar / Ocultar
-	void MostrarHUD();
-	void OcultarHUD();
+    void MostrarHUD();
+    void OcultarHUD();
 
-	// Puente hacia el widget
-	void EstablecerCansancio(float valor);
-	void EstablecerInteraccionVisible(bool visible);
-	void EstablecerSlot(int32 indice, UTexture2D* icono);
-	void LimpiarSlots();
+    // puente HUD principal
+    void EstablecerCansancio(float valor);
+    void EstablecerInteraccionVisible(bool visible);
+    void EstablecerSlot(int32 indice, UTexture2D* icono);
+    void LimpiarSlots();
+
+    // historias (mostrar/ocultar via HUD)
+    void MostrarHistoria(const FText& texto);
+    void OcultarHistoria();
 
 private:
-	UClass* ClaseHUD = nullptr;      // BP que hereda de UGameTerror (asignado por FClassFinder)
-	UGameTerror* HUDWidget = nullptr; // Instancia creada en BeginPlay
+    UClass* ClaseHUD = nullptr;
+    UGameTerror* HUDWidget = nullptr;
+
+    UPROPERTY(EditDefaultsOnly, Category="Historia")
+    TSubclassOf<UNotascpp> NotasClass;
+
+    UPROPERTY() UNotascpp* NotasWidget = nullptr;
 };

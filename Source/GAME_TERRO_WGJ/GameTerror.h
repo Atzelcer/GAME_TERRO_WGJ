@@ -30,7 +30,7 @@ private:
 	UImage* inv2 = nullptr;
 	UImage* inv3 = nullptr;
 	UImage* inv4 = nullptr;
-	UProgressBar* BarraAgotamiento = nullptr;
+	UProgressBar* BarAgotamiento = nullptr;
 
 	UImage* ObtenerSlotPorIndice(int32 indice) const;
 

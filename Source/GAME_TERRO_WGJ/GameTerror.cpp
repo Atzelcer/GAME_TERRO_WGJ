@@ -14,7 +14,7 @@ void UGameTerror::NativeConstruct()
 	inv2 = Cast<UImage>(GetWidgetFromName(TEXT("inv2")));
 	inv3 = Cast<UImage>(GetWidgetFromName(TEXT("inv3")));
 	inv4 = Cast<UImage>(GetWidgetFromName(TEXT("inv4")));
-	BarraAgotamiento = Cast<UProgressBar>(GetWidgetFromName(TEXT("Bar-agotamiento")));
+	BarAgotamiento = Cast<UProgressBar>(GetWidgetFromName(TEXT("BarAgotamiento")));
 
 	EstablecerCansancio(valorCansancioGuardado);
 	EstablecerInteraccionVisible(interaccionVisibleGuardada);
@@ -23,9 +23,9 @@ void UGameTerror::NativeConstruct()
 void UGameTerror::EstablecerCansancio(float valor)
 {
 	valorCansancioGuardado = FMath::Clamp(valor, 0.f, 1.f);
-	if (BarraAgotamiento)
+	if (BarAgotamiento)
 	{
-		BarraAgotamiento->SetPercent(valorCansancioGuardado);
+		BarAgotamiento->SetPercent(valorCansancioGuardado);
 	}
 }
 

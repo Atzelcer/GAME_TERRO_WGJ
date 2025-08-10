@@ -15,6 +15,8 @@ public:
 	AGAME_TERRO_WGJGameMode();
 
 	virtual void BeginPlay() override;
+
+	class AHistoriasActivador* activador = nullptr;
 };
 
 
