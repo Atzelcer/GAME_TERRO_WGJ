@@ -8,14 +8,17 @@ public class GAME_TERRO_WGJ : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[] { 
-			"Core", 
-			"CoreUObject", 
-			"Engine", 
-			"InputCore", 
-			"HeadMountedDisplay",
-			"AnimationCore",
-			"AnimGraphRuntime"
+		PublicDependencyModuleNames.AddRange(new string[] {
+            "Core",
+            "CoreUObject",
+            "Engine",
+            "InputCore",
+            "HeadMountedDisplay",
+            "AnimationCore",
+            "AnimGraphRuntime",
+            "UMG",         
+			"Slate",       
+			"SlateCore"    
 		});
 	}
 }

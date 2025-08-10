@@ -22,6 +22,11 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "UObject/ConstructorHelpers.h"
 
+#include "GameTerror.h"
+#include "HUD_terror.h"
+#include "Sound/SoundBase.h"
+#include "Components/AudioComponent.h"
+
 //////////////////////////////////////////////////////////////////////////
 // AGAME_TERRO_WGJCharacter Constructor
 
@@ -97,6 +102,37 @@ AGAME_TERRO_WGJCharacter::AGAME_TERRO_WGJCharacter()
 
 	// Setup Cyberpunk Girl Mesh and Animations with asset references
 	SetupCyberpunkGirlMesh();
+
+	// Componentes de audio
+	LoopComp = CreateDefaultSubobject<UAudioComponent>(TEXT("LoopComp"));
+	VoiceComp = CreateDefaultSubobject<UAudioComponent>(TEXT("VoiceComp"));
+	LoopComp->SetupAttachment(RootComponent);
+	VoiceComp->SetupAttachment(RootComponent);
+	LoopComp->bAutoActivate = false;
+	VoiceComp->bAutoActivate = false;
+
+
+	//LoopComp->SetupAttachment(FollowCamera);
+	//VoiceComp->SetupAttachment(FollowCamera);
+
+	// Carga directa de los tres SoundWaves (o asígnalos en el editor)
+	static ConstructorHelpers::FObjectFinder<USoundBase> SR(
+		TEXT("SoundWave'/Game/MoreSounds/Sonidos/Personajes/Protagonista/corriendo.corriendo'"));
+	if (SR.Succeeded()) SndRunLoop = SR.Object;
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> ST(
+		TEXT("SoundWave'/Game/MoreSounds/Sonidos/Personajes/Protagonista/cansado.cansado'"));
+	if (ST.Succeeded()) SndTiredLoop = ST.Object;
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> SS(
+		TEXT("SoundWave'/Game/MoreSounds/Sonidos/Personajes/Protagonista/suspiros.suspiros'"));
+	if (SS.Succeeded()) SndSigh = SS.Object;
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> SW(
+		TEXT("SoundWave'/Game/MoreSounds/Sonidos/Ambiente/Pasos/caminando.caminando'"));
+	if (SW.Succeeded()) SndWalkLoop = SW.Object;
+
+
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -215,10 +251,36 @@ void AGAME_TERRO_WGJCharacter::MoveRight(float Value)
 void AGAME_TERRO_WGJCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	// Load animation assets from content folder
+	NextSighTime = GetWorld()->GetTimeSeconds() + SighInterval;
 	SetupCyberpunkGirlMesh();
+
+	// cachea el HUD del jugador
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		HudActorRef = PC->GetHUD<AHUD_terror>();
+	}
+	else
+	{
+		// alternativa si BeginPlay corre antes de poseer:
+		if (APlayerController* PC0 = GetWorld()->GetFirstPlayerController())
+		{
+			HudActorRef = PC0->GetHUD<AHUD_terror>();
+		}
+	}
+
+	if (HudActorRef)
+	{
+		HudActorRef->EstablecerCansancio(agotamientoActual);
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("HUD actor linked"));
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("HUD actor not found (check GameMode HUDClass)"));
+	}
+
+	SetFirstPersonMode(true);
 }
+
 
 void AGAME_TERRO_WGJCharacter::Tick(float DeltaTime)
 {
@@ -229,6 +291,10 @@ void AGAME_TERRO_WGJCharacter::Tick(float DeltaTime)
 	
 	// Handle animation transitions
 	PlayAnimationBasedOnMovement();
+
+	ActualizarAgotamiento(DeltaTime);
+	ActualizarHUD();
+	UpdateAudio(DeltaTime);
 }
 
 void AGAME_TERRO_WGJCharacter::SetupCyberpunkGirlMesh()
@@ -381,14 +447,15 @@ void AGAME_TERRO_WGJCharacter::PlayAnimationBasedOnMovement()
 
 void AGAME_TERRO_WGJCharacter::StartRunning()
 {
-	bWantsToRun = true;
-	UE_LOG(LogTemp, Log, TEXT("StartRunning called - bWantsToRun set to true"));
+	if (!bExhausto)
+	{
+		bWantsToRun = true;
+	}
 }
 
 void AGAME_TERRO_WGJCharacter::StopRunning()
 {
 	bWantsToRun = false;
-	UE_LOG(LogTemp, Log, TEXT("StopRunning called - bWantsToRun set to false"));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -433,6 +500,132 @@ void AGAME_TERRO_WGJCharacter::Jump()
 	PlayJumpStartAnimation();
 }
 
+void AGAME_TERRO_WGJCharacter::ActualizarAgotamiento(float Dt)
+{
+	const bool estaMoviendose = bIsMoving;
+	const bool manteniendoRun = bWantsToRun;
+
+	// si está exhausto, fuerza caminar
+	if (bExhausto)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	}
+
+	// aumento de agotamiento
+	if (estaMoviendose && manteniendoRun && !bExhausto)
+	{
+		agotamientoActual += tasaAumentoCorriendo * Dt;
+		tiempoDesdeQueDejoDeCorrer = 0.f;
+	}
+	else
+	{
+		// recuperación
+		tiempoDesdeQueDejoDeCorrer += Dt;
+		if (tiempoDesdeQueDejoDeCorrer >= delayRecuperacion)
+		{
+			agotamientoActual -= tasaBajadaReposo * Dt;
+
+		}
+	}
+
+	agotamientoActual = FMath::Clamp(agotamientoActual, 0.f, 1.f);
+
+	// entrar en estado exhausto
+	if (agotamientoActual >= 1.f)
+	{
+		if (!bExhausto)
+		bExhausto = true;
+	}
+
+	// salir de estado exhausto
+	if (bExhausto && agotamientoActual <= 0.25f)
+	{
+		bExhausto = false;
+	}
+
+	if (bExhausto)
+	{
+		bWantsToRun = false;
+	}
+}
+
+
+void AGAME_TERRO_WGJCharacter::ActualizarHUD()
+{
+	if (HudActorRef)
+	{
+		HudActorRef->EstablecerCansancio(agotamientoActual);
+	}
+}
+
+void AGAME_TERRO_WGJCharacter::UpdateAudio(float /*Dt*/)
+{
+	// 1) Elegir loop según estado
+	USoundBase* DesiredLoop = nullptr;
+
+	const bool bTiredLike = (agotamientoActual >= TiredThreshold);
+
+	if (bTiredLike)
+	{
+		DesiredLoop = SndTiredLoop;                 // respiración/quejido de cansancio
+	}
+	else if (bIsRunning && !bExhausto)
+	{
+		DesiredLoop = SndRunLoop;                   // corriendo
+	}
+	else if (bIsMoving)                             // caminando (moviéndose pero sin correr)
+	{
+		DesiredLoop = SndWalkLoop;
+	}
+	// si está quieto -> sin loop
+
+	UpdateLoop(DesiredLoop, 1.0f);
+
+	// 2) Suspiro EXACTO cada 50s
+	if (SndSigh)
+	{
+		const float Now = GetWorld()->GetTimeSeconds();
+		if (Now >= NextSighTime)
+		{
+			PlayVoice(SndSigh, 1.0f);
+			NextSighTime = Now + SighInterval;
+		}
+	}
+}
+
+void AGAME_TERRO_WGJCharacter::UpdateLoop(USoundBase* Desired, float Volume)
+{
+	if (!LoopComp) return;
+
+	if (!Desired)
+	{
+		if (LoopComp->IsPlaying()) LoopComp->Stop();
+		return;
+	}
+
+	// Si el loop actual no es el deseado, haz el swap y reproduce
+	if (LoopComp->Sound != Desired)
+	{
+		LoopComp->Stop();
+		LoopComp->SetSound(Desired);
+		LoopComp->SetVolumeMultiplier(Volume);
+		LoopComp->Play();
+	}
+	else if (!LoopComp->IsPlaying())
+	{
+		LoopComp->SetVolumeMultiplier(Volume);
+		LoopComp->Play();
+	}
+}
+
+void AGAME_TERRO_WGJCharacter::PlayVoice(USoundBase* Snd, float Volume)
+{
+	if (!Snd || !VoiceComp) return;
+	VoiceComp->SetSound(Snd);
+	VoiceComp->SetVolumeMultiplier(Volume);
+	VoiceComp->Play(0.f);
+}
+
 void AGAME_TERRO_WGJCharacter::PlayJumpStartAnimation()
 {
 	if (JumpStartAnimation && GetMesh())
@@ -454,25 +647,40 @@ void AGAME_TERRO_WGJCharacter::ToggleFirstPerson()
 void AGAME_TERRO_WGJCharacter::SetFirstPersonMode(bool bEnable)
 {
 	bFirstPersonMode = bEnable;
-	
+
 	if (bFirstPersonMode)
 	{
-		// First Person Configuration
-		CameraBoom->TargetArmLength = 0.0f;
-		FollowCamera->SetRelativeLocation(FVector(10.0f, 0.0f, 60.0f)); // At head level
-		
-		// Enable controller rotation for looking around
+		CameraBoom->TargetArmLength = 0.f;
+		CameraBoom->bUsePawnControlRotation = false;
+		CameraBoom->bDoCollisionTest = false;
+
+		FollowCamera->AttachToComponent(GetCapsuleComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+		FollowCamera->SetRelativeLocation(FVector(0.f, 0.f, 60.f));
+		FollowCamera->SetRelativeRotation(FRotator::ZeroRotator);
+		FollowCamera->bUsePawnControlRotation = true;
+
 		bUseControllerRotationYaw = true;
+		bUseControllerRotationPitch = true;
+		bUseControllerRotationRoll = false;
 		GetCharacterMovement()->bOrientRotationToMovement = false;
+
+		if (GetMesh()) GetMesh()->SetOwnerNoSee(true);
 	}
 	else
 	{
-		// Third Person Configuration
-		CameraBoom->TargetArmLength = 300.0f;
-		FollowCamera->SetRelativeLocation(FVector::ZeroVector); // Reset position
-		
-		// Disable controller rotation for third person
+		FollowCamera->AttachToComponent(CameraBoom, FAttachmentTransformRules::SnapToTargetNotIncludingScale, USpringArmComponent::SocketName);
+		FollowCamera->SetRelativeLocation(FVector::ZeroVector);
+		FollowCamera->SetRelativeRotation(FRotator::ZeroRotator);
+		FollowCamera->bUsePawnControlRotation = false;
+
+		CameraBoom->TargetArmLength = 300.f;
+		CameraBoom->bUsePawnControlRotation = true;
+		CameraBoom->bDoCollisionTest = true;
+
 		bUseControllerRotationYaw = false;
+		bUseControllerRotationPitch = false;
 		GetCharacterMovement()->bOrientRotationToMovement = true;
+
+		if (GetMesh()) GetMesh()->SetOwnerNoSee(false);
 	}
 }
