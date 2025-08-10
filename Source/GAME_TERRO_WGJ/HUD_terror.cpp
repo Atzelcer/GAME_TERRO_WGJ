@@ -6,6 +6,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "GameFramework/PlayerController.h"
 #include "piramidePuzzle.h"
+#include "PanelPrincipal.h"
 
 AHUD_terror::AHUD_terror()
 {
@@ -20,6 +21,9 @@ AHUD_terror::AHUD_terror()
 
     static ConstructorHelpers::FClassFinder<UpiramidePuzzle> WPPira(TEXT("/Game/HUD/puzzleP.puzzleP"));
     if (WPPira.Succeeded()) ClasePiramideWidget = WPPira.Class;
+
+	static ConstructorHelpers::FClassFinder<UPanelPrincipal> WBPPanel(TEXT("/Game/HUD/PanelPrincipal_BP.PanelPrincipal_BP_C"));
+	if (WBPPanel.Succeeded()) ClasePanelPrincipal = WBPPanel.Class;
 }
 
 void AHUD_terror::BeginPlay()
@@ -126,6 +130,34 @@ void AHUD_terror::OcultarCajaFuerte()
         PC->SetPause(false); 
         PC->SetInputMode(FInputModeGameOnly());
         PC->bShowMouseCursor = false;
+    }
+}
+
+void AHUD_terror::MostrarPanelPrincipal()
+{
+    if (!ClasePanelPrincipal) return;
+
+    if (!PanelPrincipalWidget)
+    {
+        PanelPrincipalWidget = CreateWidget<UPanelPrincipal>(GetWorld(), ClasePanelPrincipal);
+    }
+    if (PanelPrincipalWidget && !PanelPrincipalWidget->IsInViewport())
+    {
+        PanelPrincipalWidget->AddToViewport();
+        if (APlayerController* PC = GetOwningPlayerController())
+        {
+            PC->SetPause(true);
+            PC->SetInputMode(FInputModeUIOnly());
+            PC->bShowMouseCursor = true;
+        }
+    }
+}
+
+void AHUD_terror::OcultarPanelPrincipal()
+{
+    if (PanelPrincipalWidget && PanelPrincipalWidget->IsInViewport())
+    {
+        PanelPrincipalWidget->RemoveFromParent();
     }
 }
 

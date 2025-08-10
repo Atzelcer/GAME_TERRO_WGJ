@@ -10,7 +10,7 @@ class UNotascpp;
 class UCajaFuertecpp;
 class ACajaFuerte;
 class UpiramidePuzzle;
-
+class UPanelPrincipal;
 
 UCLASS()
 class GAME_TERRO_WGJ_API AHUD_terror : public AHUD
@@ -24,13 +24,11 @@ public:
     void MostrarHUD();
     void OcultarHUD();
 
-    // puente HUD principal
     void EstablecerCansancio(float valor);
     void EstablecerInteraccionVisible(bool visible);
     void EstablecerSlot(int32 indice, UTexture2D* icono);
     void LimpiarSlots();
 
-    // historias (mostrar/ocultar via HUD)
     void MostrarHistoria(const FText& texto);
     void OcultarHistoria();
 
@@ -41,11 +39,10 @@ public:
     UClass* ClaseHUD = nullptr;
     UPROPERTY() UGameTerror* HUDWidget = nullptr;
 
-    // historia (ya lo tienes)
+
     UPROPERTY(EditDefaultsOnly, Category = "UI") TSubclassOf<UNotascpp> NotasClass;
     UPROPERTY() UNotascpp* NotasWidget = nullptr;
 
-    // NUEVO: refs del widget de caja fuerte
     UPROPERTY(EditDefaultsOnly, Category = "UI") TSubclassOf<UCajaFuertecpp> ClaseCajaWidget;
     UPROPERTY() UCajaFuertecpp* CajaWidget = nullptr;
 
@@ -58,5 +55,12 @@ public:
     // ...
     void MostrarPistaPiramide(UTexture2D* Texture, int32 Digit);
     void OcultarPistaPiramide();
+
+    void MostrarPanelPrincipal();
+    void OcultarPanelPrincipal();
+
+    UPROPERTY(EditDefaultsOnly, Category = "UI") TSubclassOf<UPanelPrincipal> ClasePanelPrincipal;
+
+    UPROPERTY() UPanelPrincipal* PanelPrincipalWidget = nullptr;
 
 };
