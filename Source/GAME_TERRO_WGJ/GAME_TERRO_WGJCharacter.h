@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "DeteccionObjeto.h"
 #include "GAME_TERRO_WGJCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -68,5 +69,18 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+
+//Interaccion
+
+UPROPERTY()
+ADeteccionObjeto* ObjetoEnInspeccion;
+
+	void RotarObjetoX(float Valor);
+	void RotarObjetoY(float Valor);
+	void RecogerObjeto();
+	void DejarObjeto();
+
+	void SetObjetoEnInspeccion(ADeteccionObjeto* NuevoObjeto);
 };
 
