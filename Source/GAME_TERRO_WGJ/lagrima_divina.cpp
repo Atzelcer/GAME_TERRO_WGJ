@@ -83,12 +83,6 @@ void Alagrima_divina::OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedCompo
 	if (OtherActor && OtherActor->IsA<AGAME_TERRO_WGJCharacter>() && !bIsCollected)
 	{
 		bIsCollected = true;
-		
-		// Log collection message
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Blue, TEXT("Lagrima Divina collected!"));
-		}
 
 		// Destroy the object after a short delay for visual feedback
 		SetLifeSpan(0.1f);
