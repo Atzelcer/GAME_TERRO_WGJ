@@ -83,12 +83,6 @@ void Acorona::OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponent, AA
 	if (OtherActor && OtherActor->IsA<AGAME_TERRO_WGJCharacter>() && !bIsCollected)
 	{
 		bIsCollected = true;
-		
-		// Log collection message
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("Corona collected!"));
-		}
 
 		// Destroy the object after a short delay for visual feedback
 		SetLifeSpan(0.1f);

@@ -79,13 +79,6 @@ void ATeleporter::BeginPlay()
 	
 	// Configure destination based on type (in case it was changed in editor)
 	ConfigureDestinationByType();
-	
-	// Ensure the teleporter is active and ready
-	if (GEngine && bIsActive)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, 
-			FString::Printf(TEXT("Teleporter active - Destination: %s"), *DestinationMapName));
-	}
 }
 
 // Called every frame
@@ -99,16 +92,6 @@ void ATeleporter::Tick(float DeltaTime)
 		TeleportTimer += DeltaTime;
 		
 		// Show countdown to player
-		if (GEngine)
-		{
-			float TimeLeft = TeleportDelay - TeleportTimer;
-			if (TimeLeft > 0)
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 0.1f, FColor::Yellow, 
-					FString::Printf(TEXT("Teleporting in %.1f seconds..."), TimeLeft));
-			}
-		}
-		
 		// Execute teleport when timer reaches delay
 		if (TeleportTimer >= TeleportDelay)
 		{
@@ -125,17 +108,13 @@ void ATeleporter::OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponent
 	{
 		bPlayerInRange = true;
 		
-		if (GEngine)
+		if (bRequiresInteraction)
 		{
-			if (bRequiresInteraction)
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Press E to use Teleporter"));
-			}
-			else
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Teleporter activated!"));
-				StartTeleport();
-			}
+			// Player can interact to teleport
+		}
+		else
+		{
+			StartTeleport();
 		}
 	}
 }
@@ -153,11 +132,6 @@ void ATeleporter::OnTriggerEndOverlap(UPrimitiveComponent* OverlappedComponent, 
 		{
 			bTeleportInProgress = false;
 			TeleportTimer = 0.0f;
-			
-			if (GEngine)
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Teleport cancelled - Player left area"));
-			}
 		}
 	}
 }
@@ -172,31 +146,14 @@ void ATeleporter::StartTeleport()
 	
 	bTeleportInProgress = true;
 	TeleportTimer = 0.0f;
-	
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, 
-			FString::Printf(TEXT("Teleporting to: %s"), *DestinationMapName));
-	}
 }
 
 // Execute the actual teleport
 void ATeleporter::ExecuteTeleport()
 {
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Magenta, TEXT("Teleporting now!"));
-	}
-	
 	// Try different methods to open the level
 	if (!DestinationMapName.IsEmpty())
 	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Orange, 
-				FString::Printf(TEXT("Attempting to load map: %s"), *DestinationMapName));
-		}
-		
 		// Method 1: Direct path (works best for Unreal maps)
 		UGameplayStatics::OpenLevel(this, FName(*DestinationMapName));
 		
@@ -205,10 +162,10 @@ void ATeleporter::ExecuteTeleport()
 	}
 	else
 	{
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("ERROR: DestinationMapName is empty!"));
-		}
+		// Reset state
+		bTeleportInProgress = false;
+		TeleportTimer = 0.0f;
+		return;
 	}
 	
 	// Reset state
@@ -232,36 +189,21 @@ void ATeleporter::ConfigureDestinationByType()
 	{
 	case ETeleporterType::BosqueToAldea:
 		DestinationMapName = TEXT("/Game/OldVillage/Levels/Old_Village_Night");
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Green, TEXT("Teleporter configured: Bosque → Aldea"));
-		}
 		break;
 		
 	case ETeleporterType::AldeaToCatacumbas:
 		DestinationMapName = TEXT("/Game/OldCatacombs/Maps/Demo");
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Blue, TEXT("Teleporter configured: Aldea → Catacumbas"));
-		}
 		break;
 		
 	case ETeleporterType::CatacumbasToBosque:
 		// Assuming you have a forest/bosque map - replace with your actual forest map path
+	
 		DestinationMapName = TEXT("/Game/ThirdPersonCPP/Maps/ThirdPersonExampleMap"); // Change this to your forest map
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Orange, TEXT("Teleporter configured: Catacumbas → Bosque"));
-		}
 		break;
 		
 	case ETeleporterType::Custom:
 	default:
 		// Keep the current DestinationMapName (manually set)
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Purple, TEXT("Teleporter configured: Custom destination"));
-		}
 		break;
 	}
 }

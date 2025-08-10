@@ -394,12 +394,6 @@ void AEnemigo3::PlayChaseSound()
 		// Set the sound and play it
 		AudioComponent->SetSound(ChaseSound);
 		AudioComponent->Play();
-		
-		// Optional: Add debug message
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("Duende risa!"));
-		}
 	}
 }
 
