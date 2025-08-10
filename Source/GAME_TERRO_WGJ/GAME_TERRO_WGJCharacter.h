@@ -71,6 +71,20 @@ public:
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 
+<<<<<<< Updated upstream
 
+=======
+//Interaccion
+
+UPROPERTY()
+ADeteccionObjeto* ObjetoEnInspeccion;
+
+	void RotarObjetoX(float Valor);
+	void RotarObjetoY(float Valor);
+	void RecogerObjeto();
+	void DejarObjeto();
+
+	void SetObjetoEnInspeccion(ADeteccionObjeto* NuevoObjeto);
+>>>>>>> Stashed changes
 };
 

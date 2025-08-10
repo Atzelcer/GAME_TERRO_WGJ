@@ -12,7 +12,11 @@ ALlave::ALlave()
 	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
 	RootComponent = Mesh;
 
+<<<<<<< Updated upstream
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MallaLlave(TEXT("Class'/Script/GAME_TERRO_WGJ.Pinzas'"));
+=======
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MallaLlave(TEXT("SkeletalMesh'/Game/Decoraciones/Articulos_Pueblo/LLave/Llave1_low.Llave1_low'"));
+>>>>>>> Stashed changes
 	if (MallaLlave.Succeeded())
 	{
 		Mesh->SetSkeletalMesh(MallaLlave.Object);
