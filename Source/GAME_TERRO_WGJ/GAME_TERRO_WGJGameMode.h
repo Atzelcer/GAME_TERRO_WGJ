@@ -17,7 +17,8 @@ public:
 	virtual void BeginPlay() override;
 
 	class AHistoriasActivador* activador = nullptr;
+private:
+	void SpawnPistasPiramide();
 };
-
 
 

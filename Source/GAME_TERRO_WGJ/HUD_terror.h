@@ -4,9 +4,13 @@
 #include "GameFramework/HUD.h"
 #include "HUD_terror.generated.h"
 
+
 class UGameTerror;
 class UNotascpp;
-class UTexture2D;
+class UCajaFuertecpp;
+class ACajaFuerte;
+class UpiramidePuzzle;
+
 
 UCLASS()
 class GAME_TERRO_WGJ_API AHUD_terror : public AHUD
@@ -30,12 +34,29 @@ public:
     void MostrarHistoria(const FText& texto);
     void OcultarHistoria();
 
-private:
+    void MostrarCajaFuerte(ACajaFuerte* owner, const FString& codigo);
+    void OcultarCajaFuerte();
+
+public:
     UClass* ClaseHUD = nullptr;
-    UGameTerror* HUDWidget = nullptr;
+    UPROPERTY() UGameTerror* HUDWidget = nullptr;
 
-    UPROPERTY(EditDefaultsOnly, Category="Historia")
-    TSubclassOf<UNotascpp> NotasClass;
-
+    // historia (ya lo tienes)
+    UPROPERTY(EditDefaultsOnly, Category = "UI") TSubclassOf<UNotascpp> NotasClass;
     UPROPERTY() UNotascpp* NotasWidget = nullptr;
+
+    // NUEVO: refs del widget de caja fuerte
+    UPROPERTY(EditDefaultsOnly, Category = "UI") TSubclassOf<UCajaFuertecpp> ClaseCajaWidget;
+    UPROPERTY() UCajaFuertecpp* CajaWidget = nullptr;
+
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+    TSubclassOf<UpiramidePuzzle> ClasePiramideWidget;
+
+    UPROPERTY() UpiramidePuzzle* PiramideWidget = nullptr;
+
+public:
+    // ...
+    void MostrarPistaPiramide(UTexture2D* Texture, int32 Digit);
+    void OcultarPistaPiramide();
+
 };

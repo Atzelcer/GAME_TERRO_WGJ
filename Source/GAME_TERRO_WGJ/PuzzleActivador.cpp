@@ -2,26 +2,102 @@
 
 
 #include "PuzzleActivador.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/BoxComponent.h"
+#include "UObject/ConstructorHelpers.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
+#include "HUD_terror.h"
 
-// Sets default values
+#include "GAME_TERRO_WGJCharacter.h"
+
 APuzzleActivador::APuzzleActivador()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bCanEverTick = false;
 
+    // Mesh visible
+    MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
+    RootComponent = MeshComp;
+
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> BoxMesh(
+        TEXT("StaticMesh'/Game/packComplemento/Models/Props/SM_Wooden_Box_Large_Set1.SM_Wooden_Box_Large_Set1'"));
+    if (BoxMesh.Succeeded())
+    {
+        MeshComp->SetStaticMesh(BoxMesh.Object);
+    }
+    MeshComp->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+    MeshComp->SetGenerateOverlapEvents(false);
+
+    // Trigger para mostrar/ocultar el widget
+    Trigger = CreateDefaultSubobject<UBoxComponent>(TEXT("Trigger"));
+    Trigger->SetupAttachment(RootComponent);
+    Trigger->InitBoxExtent(FVector(220.f, 220.f, 220.f));
+    Trigger->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+    //Trigger->SetCollisionObjectType(ECC_WorldDynamic);
+    Trigger->SetCollisionResponseToAllChannels(ECR_Ignore);
+    Trigger->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+    Trigger->SetGenerateOverlapEvents(true);
 }
 
-// Called when the game starts or when spawned
 void APuzzleActivador::BeginPlay()
 {
-	Super::BeginPlay();
-	
+    Super::BeginPlay();
 }
 
-// Called every frame
 void APuzzleActivador::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
+void APuzzleActivador::SetContenido(UTexture2D* InTexture, int32 InDigit)
+{
+    Imagen = InTexture;
+    Numero = InDigit;
+}
+
+void APuzzleActivador::NotifyActorBeginOverlap(AActor* OtherActor)
+{
+    Super::NotifyActorBeginOverlap(OtherActor);
+
+    if (AGAME_TERRO_WGJCharacter* Char = Cast<AGAME_TERRO_WGJCharacter>(OtherActor))
+    {
+	
+        if (Char->IsLocallyControlled())
+        {
+            if (AController* C = Char->GetController())
+            {
+                if (APlayerController* PC = Cast<APlayerController>(C))
+                {
+                    if (AHUD_terror* HUD = PC->GetHUD<AHUD_terror>())
+                    {
+                        HUD->MostrarPistaPiramide(Imagen, Numero);
+                        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red,
+                            FString::Printf(TEXT("Overlap with Puzzle Activator: %s"), *Char->GetName()));
+                    }
+                }
+            }
+        }
+    }
+}
+
+void APuzzleActivador::NotifyActorEndOverlap(AActor* OtherActor)
+{
+    Super::NotifyActorEndOverlap(OtherActor);
+
+    if (AGAME_TERRO_WGJCharacter* Char = Cast<AGAME_TERRO_WGJCharacter>(OtherActor))
+    {
+        if (Char->IsLocallyControlled())
+        {
+            if (AController* C = Char->GetController())
+            {
+                if (APlayerController* PC = Cast<APlayerController>(C))
+                {
+                    if (AHUD_terror* HUD = PC->GetHUD<AHUD_terror>())
+                    {
+                        HUD->OcultarPistaPiramide();
+                    }
+                }
+            }
+        }
+    }
+}

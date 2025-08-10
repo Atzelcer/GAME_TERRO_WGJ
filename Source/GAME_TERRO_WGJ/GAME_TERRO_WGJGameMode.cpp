@@ -8,6 +8,9 @@
 #include "Engine/Engine.h"
 #include "HistoriasActivador.h"
 #include "CajaFuerte.h"
+#include "PuzzleActivador.h"   
+#include "Engine/Texture2D.h"
+
 
 AGAME_TERRO_WGJGameMode::AGAME_TERRO_WGJGameMode()
 {
@@ -20,7 +23,7 @@ AGAME_TERRO_WGJGameMode::AGAME_TERRO_WGJGameMode()
 void AGAME_TERRO_WGJGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	// Ensure the HUD is created and displayed
+
 	if (AHUD_terror* HUD = Cast<AHUD_terror>(GetWorld()->GetFirstPlayerController()->GetHUD()))
 	{
 		HUD->MostrarHUD();
@@ -51,7 +54,48 @@ void AGAME_TERRO_WGJGameMode::BeginPlay()
 	if (caja)
 	{
 		caja->SetEscalaComun(1.75f);
-		caja->SetModoChasis(false); // true = chasis, false = completa
+		caja->SetModoChasis(false);
 	}
 
+	SpawnPistasPiramide();
+}
+
+static UTexture2D* LoadTex(const TCHAR* Path)
+{
+	return Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), nullptr, Path));
+}
+
+void AGAME_TERRO_WGJGameMode::SpawnPistasPiramide()
+{
+	const TArray<FVector> Locs = {
+		FVector(8590.f,  8590.f, -7570.f),
+		FVector(700.f,  3340.f, -7210.f),
+		FVector(-1440.f, -4430.f, -6760.f),
+		FVector(3940.f,  2440.f, -7220.f)
+	};
+	const FRotator Rot(0.f, 0.f, 0.f);
+
+	TArray<UTexture2D*> Tex;
+	Tex.Reserve(4);
+	Tex.Add(LoadTex(TEXT("Texture2D'/Game/imagenes/Pir1.Pir1'")));
+	Tex.Add(LoadTex(TEXT("Texture2D'/Game/imagenes/Pir2.Pir2'")));
+	Tex.Add(LoadTex(TEXT("Texture2D'/Game/imagenes/Pir3.Pir3'")));
+	Tex.Add(LoadTex(TEXT("Texture2D'/Game/imagenes/Pir4.Pir4'")));
+
+	//FActorSpawnParameters SP;
+	//SP.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	for (int32 i = 0; i < Locs.Num(); ++i)
+	{
+		APuzzleActivador* A = GetWorld()->SpawnActor<APuzzleActivador>(
+			APuzzleActivador::StaticClass(), Locs[i], Rot);
+
+		if (!A) continue;
+
+		const int32 Digit = FMath::RandRange(0, 9);
+
+		UTexture2D* Img = (Tex.IsValidIndex(i) ? Tex[i] : nullptr);
+
+		A->SetContenido(Img, Digit);
+	}
 }
