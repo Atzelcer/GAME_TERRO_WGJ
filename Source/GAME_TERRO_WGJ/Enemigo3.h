@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Enemigos.h"
 #include "Animation/AnimSequence.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundWave.h"
 #include "Enemigo3.generated.h"
 
 UCLASS()
@@ -74,6 +76,16 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Duende Combat")
 	float AttackCooldown;
 
+	// Audio components and sounds
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Duende Audio")
+	UAudioComponent* AudioComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Duende Audio")
+	USoundWave* ChaseSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Duende Audio")
+	float ChaseSoundInterval;
+
 	// Smoothing timer to avoid constant animation switching
 	UPROPERTY(BlueprintReadOnly, Category = "Duende State")
 	float StateChangeTimer;
@@ -101,6 +113,13 @@ private:
 	void RotateTowardsPlayer(float DeltaTime);
 	void MoveTowardsPlayer(float DeltaTime);
 	bool CanSeePlayer() const;
+
+	// Audio functions
+	void UpdateChaseAudio(float DeltaTime);
+	void PlayChaseSound();
+
+	// Audio timer
+	float ChaseSoundTimer;
 	bool CanAttackPlayer() const;
 	void SmoothAnimationTransition(float DeltaTime);
 };
