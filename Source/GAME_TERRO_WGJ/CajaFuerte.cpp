@@ -12,6 +12,8 @@
 #include "Components/PrimitiveComponent.h"
 #include "HUD_terror.h"
 #include "Tenaza.h"  
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 
 
 ACajaFuerte::ACajaFuerte()
@@ -39,6 +41,18 @@ ACajaFuerte::ACajaFuerte()
     Trigger->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
     Trigger->SetGenerateOverlapEvents(true);
 
+    static ConstructorHelpers::FObjectFinder<USoundBase> SndInRef(
+        TEXT("SoundWave'/Game/MoreSounds/Sonidos/Interaccion/Papel/papel1.papel1'")
+    );
+    if (SndInRef.Succeeded())
+        SndAlEntrar = SndInRef.Object;
+
+    // Sonido al abrir (destrucción/golpe)
+    static ConstructorHelpers::FObjectFinder<USoundBase> SndOpenRef(
+        TEXT("SoundWave'/Game/MoreSounds/Sonidos/Interaccion/Destruccion-golpes/Destruccion2.Destruccion2'")
+    );
+    if (SndOpenRef.Succeeded())
+        SndAlAbrir = SndOpenRef.Object;
 
     ClaseObjetoAExpulsar = ATenaza::StaticClass();
 }
@@ -81,8 +95,13 @@ void ACajaFuerte::NotifyActorBeginOverlap(AActor* OtherActor)
             if (AHUD_terror* HUD = PC->GetHUD<AHUD_terror>())
             {
                 HUD->MostrarCajaFuerte(this, CodigoEsperado);
+
+                // sonido de interacción
+                if (SndAlEntrar)
+                    UGameplayStatics::PlaySoundAtLocation(this, SndAlEntrar, GetActorLocation());
             }
 }
+
 
 void ACajaFuerte::NotifyActorEndOverlap(AActor* OtherActor)
 {
@@ -96,16 +115,19 @@ void ACajaFuerte::NotifyActorEndOverlap(AActor* OtherActor)
             }
 }
 
-// en CajaFuerte.cpp
 void ACajaFuerte::AbrirCajaFuerte()
 {
     if (bAbierta) return;
     bAbierta = true;
 
-    // 1) cambiar al mesh abierto
+    // sonido de apertura
+    if (SndAlAbrir)
+        UGameplayStatics::PlaySoundAtLocation(this, SndAlAbrir, GetActorLocation());
+
+    // 1) mesh abierto
     SetModoChasis(true);
 
-    // 2) apagar colisión del trigger
+    // 2) apagar colisión
     DesactivarColision();
     if (Trigger)
     {
@@ -113,7 +135,7 @@ void ACajaFuerte::AbrirCajaFuerte()
         Trigger->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     }
 
-    // 3) cerrar el widget y devolver control al juego
+    // 3) cerrar UI y devolver control
     if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
     {
         if (AHUD_terror* HUD = PC->GetHUD<AHUD_terror>())
@@ -124,10 +146,9 @@ void ACajaFuerte::AbrirCajaFuerte()
         PC->bShowMouseCursor = false;
     }
 
-    // 4) soltar el objeto
+    // 4) soltar objeto
     LanzarObjeto();
 }
-
 
 void ACajaFuerte::FeedbackCodigoIncorrecto()
 {

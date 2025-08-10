@@ -24,7 +24,6 @@
 
 #include "GameTerror.h"
 #include "HUD_terror.h"
-
 #include "Sound/SoundBase.h"
 #include "Components/AudioComponent.h"
 
@@ -104,26 +103,35 @@ AGAME_TERRO_WGJCharacter::AGAME_TERRO_WGJCharacter()
 	// Setup Cyberpunk Girl Mesh and Animations with asset references
 	SetupCyberpunkGirlMesh();
 
-	BreathComp = CreateDefaultSubobject<UAudioComponent>(TEXT("BreathComp"));
-	BreathComp->SetupAttachment(RootComponent);
-	BreathComp->bAutoActivate = false;
-	BreathComp->bIsUISound = false;
+	// Componentes de audio
+	LoopComp = CreateDefaultSubobject<UAudioComponent>(TEXT("LoopComp"));
+	VoiceComp = CreateDefaultSubobject<UAudioComponent>(TEXT("VoiceComp"));
+	LoopComp->SetupAttachment(RootComponent);
+	VoiceComp->SetupAttachment(RootComponent);
+	LoopComp->bAutoActivate = false;
+	VoiceComp->bAutoActivate = false;
 
-	//static ConstructorHelpers::FObjectFinder<USoundBase> S1(
-	//	TEXT("SoundWave'/Game/MoreSounds/Sonidos/Personajes/Protagonista/Suspiros_chica_normal.Suspiros_chica_normal'"));
-	//if (S1.Succeeded()) SndSuspiroNormal = S1.Object;
 
-	//static ConstructorHelpers::FObjectFinder<USoundBase> S2(
-	//	TEXT("SoundWave'/Game/MoreSounds/Sonidos/Personajes/Protagonista/Cansancio_chica_.Cansancio_chica_'"));
-	//if (S2.Succeeded()) SndCansancio = S2.Object;
+	//LoopComp->SetupAttachment(FollowCamera);
+	//VoiceComp->SetupAttachment(FollowCamera);
 
-	//static ConstructorHelpers::FObjectFinder<USoundBase> S3(
-	//	TEXT("SoundWave'/Game/MoreSounds/Sonidos/Personajes/Protagonista/Chica_súper_cansada_.Chica_súper_cansada_'"));
-	//if (S3.Succeeded()) SndSuperCansada = S3.Object;
+	// Carga directa de los tres SoundWaves (o asígnalos en el editor)
+	static ConstructorHelpers::FObjectFinder<USoundBase> SR(
+		TEXT("SoundWave'/Game/MoreSounds/Sonidos/Personajes/Protagonista/corriendo.corriendo'"));
+	if (SR.Succeeded()) SndRunLoop = SR.Object;
 
-	//static ConstructorHelpers::FObjectFinder<USoundBase> S4(
-	//	TEXT("SoundWave'/Game/MoreSounds/Sonidos/Personajes/Protagonista/Grito_corto_mujer_.Grito_corto_mujer_'"));
-	//if (S4.Succeeded()) SndGritoCorto = S4.Object;
+	static ConstructorHelpers::FObjectFinder<USoundBase> ST(
+		TEXT("SoundWave'/Game/MoreSounds/Sonidos/Personajes/Protagonista/cansado.cansado'"));
+	if (ST.Succeeded()) SndTiredLoop = ST.Object;
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> SS(
+		TEXT("SoundWave'/Game/MoreSounds/Sonidos/Personajes/Protagonista/suspiros.suspiros'"));
+	if (SS.Succeeded()) SndSigh = SS.Object;
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> SW(
+		TEXT("SoundWave'/Game/MoreSounds/Sonidos/Ambiente/Pasos/caminando.caminando'"));
+	if (SW.Succeeded()) SndWalkLoop = SW.Object;
+
 
 }
 
@@ -243,7 +251,7 @@ void AGAME_TERRO_WGJCharacter::MoveRight(float Value)
 void AGAME_TERRO_WGJCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	NextBreathTime = GetWorld()->GetTimeSeconds() + 1.0f;
+	NextSighTime = GetWorld()->GetTimeSeconds() + SighInterval;
 	SetupCyberpunkGirlMesh();
 
 	// cachea el HUD del jugador
@@ -286,8 +294,7 @@ void AGAME_TERRO_WGJCharacter::Tick(float DeltaTime)
 
 	ActualizarAgotamiento(DeltaTime);
 	ActualizarHUD();
-
-	UpdateBreathing(DeltaTime);
+	UpdateAudio(DeltaTime);
 }
 
 void AGAME_TERRO_WGJCharacter::SetupCyberpunkGirlMesh()
@@ -551,78 +558,73 @@ void AGAME_TERRO_WGJCharacter::ActualizarHUD()
 	}
 }
 
-void AGAME_TERRO_WGJCharacter::UpdateBreathing(float /*Dt*/)
+void AGAME_TERRO_WGJCharacter::UpdateAudio(float /*Dt*/)
 {
-	// Determina estado
-	EBreathState NewState = EBreathState::Normal;
-	if (agotamientoActual >= ExhaustedThreshold)       NewState = EBreathState::Exhausted;
-	else if (agotamientoActual >= TiredThreshold)      NewState = EBreathState::Tired;
+	// 1) Elegir loop según estado
+	USoundBase* DesiredLoop = nullptr;
 
-	// Si entraste a Exhausted por primera vez (o tras recuperarte), permite un grito corto
-	const float Now = GetWorld()->GetTimeSeconds();
-	static bool bPrevExhausted = false;
-	const bool bNowExhausted = (NewState == EBreathState::Exhausted);
+	const bool bTiredLike = (agotamientoActual >= TiredThreshold);
 
-	if (bNowExhausted && !bPrevExhausted && SndGritoCorto && Now >= NextAllowedGritoTime)
+	if (bTiredLike)
 	{
-		PlayBreathOnce(SndGritoCorto, 1.0f);
-		NextAllowedGritoTime = Now + ExhaustionGritoCooldown; // cooldown
+		DesiredLoop = SndTiredLoop;                 // respiración/quejido de cansancio
 	}
-	bPrevExhausted = bNowExhausted;
-
-	// Actualiza el estado
-	if (NewState != BreathState)
+	else if (bIsRunning && !bExhausto)
 	{
-		BreathState = NewState;
-		// Fuerza un suspiro inmediato al cambiar de estado
-		NextBreathTime = Now;
+		DesiredLoop = SndRunLoop;                   // corriendo
 	}
-
-	// ¿toca reproducir un suspiro?
-	if (Now >= NextBreathTime)
+	else if (bIsMoving)                             // caminando (moviéndose pero sin correr)
 	{
-		USoundBase* ToPlay = nullptr;
-		float volume = 1.f;
-		float nextMin = 1.8f, nextMax = 3.0f;
+		DesiredLoop = SndWalkLoop;
+	}
+	// si está quieto -> sin loop
 
-		switch (BreathState)
+	UpdateLoop(DesiredLoop, 1.0f);
+
+	// 2) Suspiro EXACTO cada 50s
+	if (SndSigh)
+	{
+		const float Now = GetWorld()->GetTimeSeconds();
+		if (Now >= NextSighTime)
 		{
-		case EBreathState::Normal:
-			ToPlay = SndSuspiroNormal;
-			volume = 0.9f;
-			nextMin = 2.5f; nextMax = 4.0f;
-			break;
-		case EBreathState::Tired:
-			ToPlay = SndCansancio;
-			volume = 1.0f;
-			nextMin = 1.2f; nextMax = 2.0f;
-			break;
-		case EBreathState::Exhausted:
-			ToPlay = SndSuperCansada;
-			volume = 1.0f;
-			nextMin = 0.8f; nextMax = 1.5f;
-			break;
+			PlayVoice(SndSigh, 1.0f);
+			NextSighTime = Now + SighInterval;
 		}
-
-		if (ToPlay)
-		{
-			PlayBreathOnce(ToPlay, volume);
-		}
-
-		// Programa el próximo suspiro en un rango aleatorio (para que no sea robótico)
-		const float interval = FMath::FRandRange(nextMin, nextMax);
-		NextBreathTime = Now + interval;
 	}
 }
 
-void AGAME_TERRO_WGJCharacter::PlayBreathOnce(USoundBase* Snd, float Volume)
+void AGAME_TERRO_WGJCharacter::UpdateLoop(USoundBase* Desired, float Volume)
 {
-	if (!Snd || !BreathComp) return;
-	BreathComp->SetSound(Snd);
-	BreathComp->SetVolumeMultiplier(Volume);
-	BreathComp->Play(0.f);
+	if (!LoopComp) return;
+
+	if (!Desired)
+	{
+		if (LoopComp->IsPlaying()) LoopComp->Stop();
+		return;
+	}
+
+	// Si el loop actual no es el deseado, haz el swap y reproduce
+	if (LoopComp->Sound != Desired)
+	{
+		LoopComp->Stop();
+		LoopComp->SetSound(Desired);
+		LoopComp->SetVolumeMultiplier(Volume);
+		LoopComp->Play();
+	}
+	else if (!LoopComp->IsPlaying())
+	{
+		LoopComp->SetVolumeMultiplier(Volume);
+		LoopComp->Play();
+	}
 }
 
+void AGAME_TERRO_WGJCharacter::PlayVoice(USoundBase* Snd, float Volume)
+{
+	if (!Snd || !VoiceComp) return;
+	VoiceComp->SetSound(Snd);
+	VoiceComp->SetVolumeMultiplier(Volume);
+	VoiceComp->Play(0.f);
+}
 
 void AGAME_TERRO_WGJCharacter::PlayJumpStartAnimation()
 {

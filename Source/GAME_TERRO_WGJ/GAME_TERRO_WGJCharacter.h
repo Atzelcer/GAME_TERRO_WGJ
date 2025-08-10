@@ -20,14 +20,6 @@ class USkeletalMesh;
 class UGameTerror;
 class AHUD_terror;
 
-UENUM()
-enum class EBreathState : uint8
-{
-	Normal,
-	Tired,
-	Exhausted
-};
-
 UCLASS(config=Game)
 class AGAME_TERRO_WGJCharacter : public ACharacter
 {
@@ -225,7 +217,14 @@ protected:
 	float tasaBajadaReposo = 0.30f;    
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Agotamiento")
-	float delayRecuperacion = 0.75f;        
+	float delayRecuperacion = 0.75f;       
+
+	UPROPERTY(EditAnywhere, Category = "Audio|Protagonista")
+	USoundBase* SndWalkLoop = nullptr; // caminando
+
+	// Suspiro fijo cada X segundos
+	UPROPERTY(EditAnywhere, Category = "Audio|Protagonista")
+	float SighInterval = 50.f;         // cada 50s
 
 	UPROPERTY(BlueprintReadOnly, Category = "Agotamiento")
 	bool bExhausto = false;
@@ -235,46 +234,31 @@ protected:
 	void ActualizarAgotamiento(float DeltaTime);
 	void ActualizarHUD();
 
-	public:
-		// ---- Audio: assets (así puedes asignarlos en el editor o cargar por código) ----
-		UPROPERTY(EditAnywhere, Category = "Audio|Protagonista")
-		USoundBase* SndSuspiroNormal = nullptr;          // Suspiros_chica_normal
+	UPROPERTY(EditAnywhere, Category = "Audio")
+	USoundBase* SndRunLoop = nullptr;     
+	UPROPERTY(EditAnywhere, Category = "Audio")
+	USoundBase* SndTiredLoop = nullptr;  
+	UPROPERTY(EditAnywhere, Category = "Audio")
+	USoundBase* SndSigh = nullptr;   
 
-		UPROPERTY(EditAnywhere, Category = "Audio|Protagonista")
-		USoundBase* SndCansancio = nullptr;              // Cansancio_chica_
 
-		UPROPERTY(EditAnywhere, Category = "Audio|Protagonista")
-		USoundBase* SndSuperCansada = nullptr;           // Chica_súper_cansada_
+	UPROPERTY(VisibleAnywhere, Category = "Audio")
+	class UAudioComponent* LoopComp = nullptr;
+	UPROPERTY(VisibleAnywhere, Category = "Audio")
+	class UAudioComponent* VoiceComp = nullptr;
 
-		UPROPERTY(EditAnywhere, Category = "Audio|Protagonista")
-		USoundBase* SndGritoCorto = nullptr;             // Grito_corto_mujer_
 
-		// (opcional) atenuación si quieres radio 3D
-		UPROPERTY(EditAnywhere, Category = "Audio|Protagonista")
-		class USoundAttenuation* BreathAttenuation = nullptr;
-
-protected:
-	// Componente que dispara las voces/respiración
-	UPROPERTY(VisibleAnywhere, Category = "Audio|Protagonista")
-	UAudioComponent* BreathComp = nullptr;
-
-	// Estado y timings de respiración
-	EBreathState BreathState = EBreathState::Normal;
-	float NextBreathTime = 0.f;
-
-	// Umbrales de cansancio (0–1)
-	UPROPERTY(EditAnywhere, Category = "Audio|Protagonista")
+	UPROPERTY(EditAnywhere, Category = "Audio")
 	float TiredThreshold = 0.60f;
+	UPROPERTY(EditAnywhere, Category = "Audio")
+	float ExhaustedThreshold = 0.90f; // (por si lo usas para lógica extra)
 
-	UPROPERTY(EditAnywhere, Category = "Audio|Protagonista")
-	float ExhaustedThreshold = 0.90f;
+	float NextSighTime = 0.f;
 
-	// Cooldown para no spamear el grito al entrar exhausto
-	float ExhaustionGritoCooldown = 6.f;
-	float NextAllowedGritoTime = 0.f;
 
-	void UpdateBreathing(float Dt);
-	void PlayBreathOnce(USoundBase* Snd, float Volume = 1.f);
+	void UpdateAudio(float Dt);
+	void UpdateLoop(USoundBase* Desired, float Volume = 1.f);
+	void PlayVoice(USoundBase* Snd, float Volume = 1.f);
 
 
 };

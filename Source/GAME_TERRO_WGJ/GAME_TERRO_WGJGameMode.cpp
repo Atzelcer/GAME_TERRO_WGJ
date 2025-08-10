@@ -10,6 +10,7 @@
 #include "CajaFuerte.h"
 #include "PuzzleActivador.h"   
 #include "Engine/Texture2D.h"
+#include "Reja.h"
 
 
 AGAME_TERRO_WGJGameMode::AGAME_TERRO_WGJGameMode()
@@ -46,6 +47,27 @@ void AGAME_TERRO_WGJGameMode::BeginPlay()
 		}
 	}
 
+	Super::BeginPlay();
+
+	const FTransform T1(
+		FRotator(0.f, 80.f, 0.f),  
+		FVector(10080.f, -1640.f, -6200.0f),
+		FVector(1.f, 1.f, 2.25f)); 
+
+	const FTransform T2(
+		FRotator(0.f, -40.f, 0.f),
+		FVector(-4680.f, 4940.f, -6490.0),
+		FVector(1.f, -0.25f, 1.f));   
+
+	UWorld* W = GetWorld();
+	if (!W) return;
+
+	AReja* R1 = W->SpawnActorDeferred<AReja>(AReja::StaticClass(), T1);
+
+
+	AReja* R2 = W->SpawnActorDeferred<AReja>(AReja::StaticClass(), T2);
+
+
 
 	const FVector loc1(3190.f, 5470.f, -7330.f);
 	const FRotator rot1(0.f, -100.f, 0.f);
@@ -58,6 +80,9 @@ void AGAME_TERRO_WGJGameMode::BeginPlay()
 	}
 
 	SpawnPistasPiramide();
+
+
+
 }
 
 static UTexture2D* LoadTex(const TCHAR* Path)

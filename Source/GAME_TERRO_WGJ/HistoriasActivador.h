@@ -34,8 +34,23 @@ public:
 
 	void setHistoria(const FText& texto);
 
-    UPROPERTY(VisibleAnywhere) UStaticMeshComponent* HistoriasActivity;
-    UPROPERTY(VisibleAnywhere) UBoxComponent* Trigger;
+protected:
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Historia")
+    UStaticMeshComponent* HistoriasActivity = nullptr;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Historia")
+    UBoxComponent* Trigger = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Historia")
     FText HistoriaMarkup;
+
+    // --- Audio ---
+    UPROPERTY(VisibleAnywhere, Category = "Audio")
+    UAudioComponent* AudioComp = nullptr;
+
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    USoundBase* SndAlEntrar = nullptr;   // asigna tu SoundWave aquí
+
+    UPROPERTY(EditAnywhere, Category = "Audio", meta = (ClampMin = "0.0"))
+    float AudioVolume = 1.0f;
 };

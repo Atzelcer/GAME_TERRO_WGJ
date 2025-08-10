@@ -45,6 +45,13 @@ protected:
     UPROPERTY(EditAnywhere, Category = "Safe") FString CodigoEsperado = "3456";
     UPROPERTY(EditAnywhere, Category = "Reward") TSubclassOf<AActor> ClaseObjetoAExpulsar;
 
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    USoundBase* SndAlEntrar = nullptr;  
+
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    USoundBase* SndAlAbrir = nullptr;  
+
+
     UFUNCTION() void LanzarObjeto();
 
     // en CajaFuerte.h
