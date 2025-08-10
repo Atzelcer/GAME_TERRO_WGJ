@@ -55,13 +55,6 @@ ATeleporter2::ATeleporter2()
 void ATeleporter2::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	// Ensure teleporter is active
-	if (bIsActive)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Teleporter2 (Aldea->Catacumbas) is ACTIVE and ready!"));
-		UE_LOG(LogTemp, Warning, TEXT("Destination: %s"), *DestinationMapName);
-	}
 }
 
 // Called every frame
@@ -88,7 +81,6 @@ void ATeleporter2::OnTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponen
 	if (Player)
 	{
 		bPlayerInRange = true;
-		UE_LOG(LogTemp, Warning, TEXT("Player entered Teleporter2 (Aldea->Catacumbas) range!"));
 		
 		if (!bRequiresInteraction)
 		{
@@ -107,7 +99,6 @@ void ATeleporter2::OnTriggerEndOverlap(UPrimitiveComponent* OverlappedComponent,
 		{
 			bTeleportInProgress = false;
 			TeleportTimer = 0.0f;
-			UE_LOG(LogTemp, Warning, TEXT("Player left teleporter area - teleport cancelled"));
 		}
 	}
 }
@@ -116,8 +107,6 @@ void ATeleporter2::StartTeleport()
 {
 	if (!bIsActive || bTeleportInProgress) return;
 
-	UE_LOG(LogTemp, Warning, TEXT("Starting teleport from Aldea to Catacumbas in %.1f seconds..."), TeleportDelay);
-	
 	bTeleportInProgress = true;
 	TeleportTimer = TeleportDelay;
 
@@ -131,13 +120,6 @@ void ATeleporter2::StartTeleport()
 void ATeleporter2::ExecuteTeleport()
 {
 	if (!bIsActive) return;
-
-	UE_LOG(LogTemp, Warning, TEXT("Executing teleport to: %s"), *DestinationMapName);
-
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Teleporting to Catacumbas...")));
-	}
 
 	// Execute the level transition
 	UGameplayStatics::OpenLevel(this, FName(*DestinationMapName));
