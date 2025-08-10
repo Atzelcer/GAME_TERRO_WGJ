@@ -2,6 +2,7 @@
 
 #include "Enemigo3.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/AudioComponent.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"
@@ -85,6 +86,24 @@ AEnemigo3::AEnemigo3()
 	{
 		AttackAnimation = AttackAnimAsset.Object;
 	}
+
+	// Create and configure Audio Component
+	AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
+	AudioComponent->SetupAttachment(RootComponent);
+	AudioComponent->bAutoActivate = false; // Don't play automatically
+
+	// Load Chase Sound
+	static ConstructorHelpers::FObjectFinder<USoundWave> ChaseSoundAsset(
+		TEXT("SoundWave'/Game/SoundsGeneral/Risa_duende_.Risa_duende_'")
+	);
+	if (ChaseSoundAsset.Succeeded())
+	{
+		ChaseSound = ChaseSoundAsset.Object;
+	}
+
+	// Initialize audio settings
+	ChaseSoundInterval = 3.0f; // Play sound every 3 seconds while chasing
+	ChaseSoundTimer = 0.0f;
 }
 
 void AEnemigo3::BeginPlay()
@@ -103,6 +122,7 @@ void AEnemigo3::Tick(float DeltaTime)
 	UpdateDetection(DeltaTime);
 	UpdateAttack(DeltaTime);
 	SmoothAnimationTransition(DeltaTime);
+	UpdateChaseAudio(DeltaTime);
 	
 	// Move and rotate towards player when chasing (but not when attacking)
 	if (bIsChasing && !bIsAttacking)
@@ -344,5 +364,42 @@ void AEnemigo3::UpdateBehavior()
 {
 	// Legacy function - now handled by UpdateDetection and SmoothAnimationTransition
 	// Keeping for compatibility
+}
+
+void AEnemigo3::UpdateChaseAudio(float DeltaTime)
+{
+	// Only play chase sounds when actively chasing and not attacking
+	if (bIsChasing && !bIsAttacking)
+	{
+		ChaseSoundTimer += DeltaTime;
+		
+		// Play chase sound at intervals
+		if (ChaseSoundTimer >= ChaseSoundInterval)
+		{
+			PlayChaseSound();
+			ChaseSoundTimer = 0.0f;
+		}
+	}
+	else
+	{
+		// Reset timer when not chasing
+		ChaseSoundTimer = 0.0f;
+	}
+}
+
+void AEnemigo3::PlayChaseSound()
+{
+	if (ChaseSound && AudioComponent)
+	{
+		// Set the sound and play it
+		AudioComponent->SetSound(ChaseSound);
+		AudioComponent->Play();
+		
+		// Optional: Add debug message
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("Duende risa!"));
+		}
+	}
 }
 
