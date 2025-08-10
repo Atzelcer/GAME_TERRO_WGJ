@@ -94,7 +94,7 @@ AEnemigo3::AEnemigo3()
 
 	// Load Chase Sound
 	static ConstructorHelpers::FObjectFinder<USoundWave> ChaseSoundAsset(
-		TEXT("SoundWave'/Game/SoundsGeneral/Risa_duende_.Risa_duende_'")
+		TEXT("SoundWave'/Game/audioMonster/_Bonus/Scream/wav/Zombie_as_scream3_one_shot_03.Zombie_as_scream3_one_shot_03'")
 	);
 	if (ChaseSoundAsset.Succeeded())
 	{
