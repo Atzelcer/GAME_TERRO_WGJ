@@ -13,6 +13,8 @@ class AGAME_TERRO_WGJGameMode : public AGameModeBase
 
 public:
 	AGAME_TERRO_WGJGameMode();
+
+	virtual void BeginPlay() override;
 };
 
 
