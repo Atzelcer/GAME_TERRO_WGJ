@@ -67,8 +67,7 @@ void AGAME_TERRO_WGJCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	PlayerInputComponent->BindAxis("TurnRate", this, &AGAME_TERRO_WGJCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AGAME_TERRO_WGJCharacter::LookUpAtRate);
-	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &AGAME_TERRO_WGJCharacter::RecogerObjeto); // E
-	PlayerInputComponent->BindAction("Cancel", IE_Pressed, this, &AGAME_TERRO_WGJCharacter::DejarObjeto); // Q
+
 
 	// handle touch devices
 	PlayerInputComponent->BindTouch(IE_Pressed, this, &AGAME_TERRO_WGJCharacter::TouchStarted);
@@ -143,43 +142,4 @@ void AGAME_TERRO_WGJCharacter::MoveRight(float Value)
 	}
 }
 
-//Interaccion con objectos
 
-void AGAME_TERRO_WGJCharacter::SetObjetoEnInspeccion(ADeteccionObjeto* NuevoObjeto)
-{
-	ObjetoEnInspeccion = NuevoObjeto;
-}
-
-void AGAME_TERRO_WGJCharacter::RotarObjetoX(float Valor)
-{
-	if (ObjetoEnInspeccion && ObjetoEnInspeccion->EstaEnInspeccion())
-	{
-		ObjetoEnInspeccion->RotarObjeto(Valor, 0);
-	}
-}
-
-void AGAME_TERRO_WGJCharacter::RotarObjetoY(float Valor)
-{
-	if (ObjetoEnInspeccion && ObjetoEnInspeccion->EstaEnInspeccion())
-	{
-		ObjetoEnInspeccion->RotarObjeto(0, Valor);
-	}
-}
-
-void AGAME_TERRO_WGJCharacter::RecogerObjeto()
-{
-	if (ObjetoEnInspeccion && ObjetoEnInspeccion->EstaEnInspeccion())
-	{
-		ObjetoEnInspeccion->TerminarInspeccion(true);
-		ObjetoEnInspeccion = nullptr;
-	}
-}
-
-void AGAME_TERRO_WGJCharacter::DejarObjeto()
-{
-	if (ObjetoEnInspeccion && ObjetoEnInspeccion->EstaEnInspeccion())
-	{
-		ObjetoEnInspeccion->TerminarInspeccion(false);
-		ObjetoEnInspeccion = nullptr;
-	}
-}
